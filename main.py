@@ -13,6 +13,7 @@ class MyPieroguszListener(PieroguszListener):
         self.builder = None
         self.func = None
         self.symbol_table = {}
+        self.string_counter = 0  # Unique counter for string variables
         self.printf = None
         self.read_int = None
         self.read_float = None
@@ -61,6 +62,18 @@ class MyPieroguszListener(PieroguszListener):
         self.global_fmt_float.global_constant = True
         self.global_fmt_float.linkage = "internal"
 
+        # Create the global format string for strings
+        fmt_str = "%s\n\0"
+        c_fmt_str = ir.Constant(
+            ir.ArrayType(ir.IntType(8), len(fmt_str)), bytearray(fmt_str.encode("utf8"))
+        )
+        self.global_fmt_str = ir.GlobalVariable(
+            self.module, c_fmt_str.type, name="fstr_str"
+        )
+        self.global_fmt_str.initializer = c_fmt_str
+        self.global_fmt_str.global_constant = True
+        self.global_fmt_str.linkage = "internal"
+
     def exitProgram(self, ctx: PieroguszParser.ProgramContext):
         print("Exiting program")
         self.builder.ret(ir.Constant(ir.IntType(32), 0))
@@ -75,6 +88,8 @@ class MyPieroguszListener(PieroguszListener):
             var = self.builder.alloca(ir.IntType(32), name=var_name)
         elif var_type == "float":
             var = self.builder.alloca(ir.FloatType(), name=var_name)
+        elif var_type == "string":
+            var = self.builder.alloca(ir.IntType(8).as_pointer(), name=var_name)
         self.symbol_table[var_name] = var
         print(f"Declared variable {var_name} of type {var_type}")
 
@@ -96,6 +111,10 @@ class MyPieroguszListener(PieroguszListener):
             fmt_ptr = self.builder.bitcast(
                 self.global_fmt_float, ir.IntType(8).as_pointer()
             )
+        elif value.type == ir.IntType(8).as_pointer():
+            fmt_ptr = self.builder.bitcast(
+                self.global_fmt_str, ir.IntType(8).as_pointer()
+            )
         self.builder.call(self.printf, [fmt_ptr, value])
 
     def enterReadStmt(self, ctx: PieroguszParser.ReadStmtContext):
@@ -116,6 +135,22 @@ class MyPieroguszListener(PieroguszListener):
                 return ir.Constant(ir.IntType(32), int(ctx.INT().getText()))
             elif ctx.FLOAT():
                 return ir.Constant(ir.FloatType(), float(ctx.FLOAT().getText()))
+            elif ctx.STRING():
+                str_val = ctx.STRING().getText()
+                str_val = str_val[1:-1]  # Remove the surrounding quotes
+                str_const = ir.Constant(
+                    ir.ArrayType(ir.IntType(8), len(str_val) + 1),
+                    bytearray(str_val.encode("utf8")) + b"\00",
+                )
+                global_str_name = f"str_{self.string_counter}"
+                self.string_counter += 1
+                global_str = ir.GlobalVariable(
+                    self.module, str_const.type, name=global_str_name
+                )
+                global_str.initializer = str_const
+                global_str.global_constant = True
+                global_str.linkage = "internal"
+                return self.builder.bitcast(global_str, ir.IntType(8).as_pointer())
             elif ctx.ID():
                 var_name = ctx.ID().getText()
                 var_ptr = self.symbol_table[var_name]
@@ -152,7 +187,7 @@ def main(argv):
     lexer = PieroguszLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = PieroguszParser(stream)
-    tree = parser.program()  # start parsing at program rule
+    tree = parser.program()
 
     printer = MyPieroguszListener()
     walker = ParseTreeWalker()

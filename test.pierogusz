@@ -14,22 +14,31 @@ int x1;
 x1 = 8;
 print x1;
 
+print "Testing x sum";
 int xSum;
 xSum = x + x1;
 print xSum;
 
+print "Testing x substract";
 int xSub;
 xSub = x1 - x;
 print xSub;
 
+print "Testing x multiply";
 int xMul;
 xMul = x * x1;
 print xMul;
 
+print "Testing x division";
 int xDiv;
 xDiv = x1 / 4;
 print xDiv;
 
+print "Testing IO reading"
 float readTest;
 read readTest;
 print readTest;
+
+string greetings;
+greetings = "Hello world";
+print greetings;
