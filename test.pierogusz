@@ -1,0 +1,35 @@
+int x;
+x = 5;
+print x;
+
+float y;
+y = 3.141592;
+print y;
+
+float p;
+p = 1.123123;
+print p;
+
+int x1;
+x1 = 8;
+print x1;
+
+int xSum;
+xSum = x + x1;
+print xSum;
+
+int xSub;
+xSub = x1 - x;
+print xSub;
+
+int xMul;
+xMul = x * x1;
+print xMul;
+
+int xDiv;
+xDiv = x1 / 4;
+print xDiv;
+
+float readTest;
+read readTest;
+print readTest;
