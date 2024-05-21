@@ -26,7 +26,7 @@ print xSub;
 
 print "Testing x multiply";
 int xMul;
-xMul = x * x1;
+xMul = x * x1 + 4;
 print xMul;
 
 print "Testing x division";
@@ -34,7 +34,7 @@ int xDiv;
 xDiv = x1 / 4;
 print xDiv;
 
-print "Testing IO reading"
+print "Testing IO reading";
 float readTest;
 read readTest;
 print readTest;

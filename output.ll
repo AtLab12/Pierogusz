@@ -54,7 +54,8 @@ entry:
   %"x.4" = load i32, i32* %"x"
   %"x1.4" = load i32, i32* %"x1"
   %"multmp" = mul i32 %"x.4", %"x1.4"
-  store i32 %"multmp", i32* %"xMul"
+  %"addtmp.1" = add i32 %"multmp", 4
+  store i32 %"addtmp.1", i32* %"xMul"
   %"xMul.1" = load i32, i32* %"xMul"
   %".30" = bitcast [4 x i8]* @"fstr" to i8*
   %".31" = call i32 (i8*, ...) @"printf"(i8* %".30", i32 %"xMul.1")

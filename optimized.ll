@@ -23,7 +23,7 @@ entry:
   %puts8 = tail call i32 @puts(ptr nonnull dereferenceable(1) @str_1)
   %.25 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @fstr, i32 3)
   %puts9 = tail call i32 @puts(ptr nonnull dereferenceable(1) @str_2)
-  %.31 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @fstr, i32 40)
+  %.31 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @fstr, i32 44)
   %puts10 = tail call i32 @puts(ptr nonnull dereferenceable(1) @str_3)
   %.37 = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @fstr, i32 2)
   %puts11 = tail call i32 @puts(ptr nonnull dereferenceable(1) @str_4)

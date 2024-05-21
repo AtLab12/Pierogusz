@@ -3,6 +3,7 @@ from antlr4 import *
 from PieroguszLexer import PieroguszLexer
 from PieroguszParser import PieroguszParser
 from PieroguszListener import PieroguszListener
+from SyntaxErrorListener import SyntaxErrorListener
 from llvmlite import ir, binding
 
 
@@ -185,14 +186,26 @@ class MyPieroguszListener(PieroguszListener):
 def main(argv):
     input_stream = FileStream(argv[1])
     lexer = PieroguszLexer(input_stream)
+    lexer._listeners = [SyntaxErrorListener()]
     stream = CommonTokenStream(lexer)
     parser = PieroguszParser(stream)
+    parser._listeners = [SyntaxErrorListener()]
     tree = parser.program()
+    lexer_errors = lexer._listeners[0].getErrors()
+    parser_errors = parser._listeners[0].getErrors()
+
+    if lexer_errors or parser_errors:
+        return 1
 
     printer = MyPieroguszListener()
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
 
+    return 0
+
 
 if __name__ == "__main__":
-    main(sys.argv)
+    result = main(sys.argv)
+    if result == 1:
+        print("Errors were found during lexical and syntax analysis.")
+        sys.exit(result)
