@@ -14,12 +14,15 @@ class MyPieroguszListener(PieroguszListener):
         self.builder = None
         self.func = None
         self.symbol_table = {}
+        self.array_sizes = {}
         self.string_counter = 0  # Unique counter for string variables
         self.printf = None
         self.read_int = None
         self.read_float = None
         self.global_fmt = None
         self.global_fmt_float = None
+        self.global_fmt_str = None
+        self.global_fmt_error = None
 
     def enterProgram(self, ctx: PieroguszParser.ProgramContext):
         print("Entering program")
@@ -75,6 +78,19 @@ class MyPieroguszListener(PieroguszListener):
         self.global_fmt_str.global_constant = True
         self.global_fmt_str.linkage = "internal"
 
+        # Create the global format string for error messages
+        fmt_error = "Array index out of bounds\n\0"
+        c_fmt_error = ir.Constant(
+            ir.ArrayType(ir.IntType(8), len(fmt_error)),
+            bytearray(fmt_error.encode("utf8")),
+        )
+        self.global_fmt_error = ir.GlobalVariable(
+            self.module, c_fmt_error.type, name="fstr_error"
+        )
+        self.global_fmt_error.initializer = c_fmt_error
+        self.global_fmt_error.global_constant = True
+        self.global_fmt_error.linkage = "internal"
+
     def exitProgram(self, ctx: PieroguszParser.ProgramContext):
         print("Exiting program")
         self.builder.ret(ir.Constant(ir.IntType(32), 0))
@@ -105,6 +121,7 @@ class MyPieroguszListener(PieroguszListener):
         elif var_type == "string":
             var = self.builder.alloca(ir.ArrayType(ir.IntType(8).as_pointer(), size), name=var_name)
         self.symbol_table[var_name] = var
+        self.array_sizes[var_name] = size
         print(f"Declared array {var_name} of type {var_type} with size {size}")
 
     def enterAssignStmt(self, ctx: PieroguszParser.AssignStmtContext):
@@ -121,6 +138,13 @@ class MyPieroguszListener(PieroguszListener):
         value_expr = ctx.getChild(5)
         index = self.evaluateExpression(index_expr)
         value = self.evaluateExpression(value_expr)
+
+        # Bounds checking
+        with self.builder.if_then(self.builder.icmp_unsigned('>=', index, ir.Constant(ir.IntType(32), self.array_sizes[var_name]))):
+            fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr])
+            self.builder.ret(ir.Constant(ir.IntType(32), 1))
+
         var_ptr = self.symbol_table[var_name]
         element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
         self.builder.store(value, element_ptr)
@@ -184,6 +208,13 @@ class MyPieroguszListener(PieroguszListener):
             var_name = ctx.ID().getText()
             index_expr = ctx.getChild(2)
             index = self.evaluateExpression(index_expr)
+
+            # Bounds checking
+            with self.builder.if_then(self.builder.icmp_unsigned('>=', index, ir.Constant(ir.IntType(32), self.array_sizes[var_name]))):
+                fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
+                self.builder.call(self.printf, [fmt_ptr])
+                self.builder.ret(ir.Constant(ir.IntType(32), 1))
+
             var_ptr = self.symbol_table[var_name]
             element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
             return self.builder.load(element_ptr, name=f"{var_name}_elem")
@@ -240,5 +271,3 @@ if __name__ == "__main__":
     if result == 1:
         print("Errors were found during lexical and syntax analysis.")
         sys.exit(result)
-
-

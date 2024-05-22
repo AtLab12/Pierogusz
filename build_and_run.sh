@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Execute Python script to generate LLVM IR
-python3 main.py test.pierogusz
+python3 main.py test_array.pierogusz
 if [ $? -ne 0 ]; then
     echo "Error during Python script execution"
     exit 1
@@ -22,7 +22,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Compile object file into executable
-clang optimized.o runtime.o -o output -lc
+clang -c -o runtime.o runtime.c
 if [ $? -ne 0 ]; then
     echo "Error during linking with Clang"
     exit 1
