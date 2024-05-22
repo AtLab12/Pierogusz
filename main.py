@@ -94,6 +94,19 @@ class MyPieroguszListener(PieroguszListener):
         self.symbol_table[var_name] = var
         print(f"Declared variable {var_name} of type {var_type}")
 
+    def enterArrayDecl(self, ctx: PieroguszParser.ArrayDeclContext):
+        var_type = ctx.getChild(0).getText()
+        var_name = ctx.getChild(1).getText()
+        size = int(ctx.getChild(3).getText())
+        if var_type == "int":
+            var = self.builder.alloca(ir.ArrayType(ir.IntType(32), size), name=var_name)
+        elif var_type == "float":
+            var = self.builder.alloca(ir.ArrayType(ir.FloatType(), size), name=var_name)
+        elif var_type == "string":
+            var = self.builder.alloca(ir.ArrayType(ir.IntType(8).as_pointer(), size), name=var_name)
+        self.symbol_table[var_name] = var
+        print(f"Declared array {var_name} of type {var_type} with size {size}")
+
     def enterAssignStmt(self, ctx: PieroguszParser.AssignStmtContext):
         var_name = ctx.getChild(0).getText()
         value_expr = ctx.getChild(2)
@@ -101,6 +114,17 @@ class MyPieroguszListener(PieroguszListener):
         var_ptr = self.symbol_table[var_name]
         self.builder.store(value, var_ptr)
         print(f"Assigned value to variable {var_name}")
+
+    def enterArrayAssignStmt(self, ctx: PieroguszParser.ArrayAssignStmtContext):
+        var_name = ctx.getChild(0).getText()
+        index_expr = ctx.getChild(2)
+        value_expr = ctx.getChild(5)
+        index = self.evaluateExpression(index_expr)
+        value = self.evaluateExpression(value_expr)
+        var_ptr = self.symbol_table[var_name]
+        element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
+        self.builder.store(value, element_ptr)
+        print(f"Assigned value to array {var_name} at index {index}")
 
     def enterPrintStmt(self, ctx: PieroguszParser.PrintStmtContext):
         expr = ctx.getChild(1)
@@ -156,6 +180,13 @@ class MyPieroguszListener(PieroguszListener):
                 var_name = ctx.ID().getText()
                 var_ptr = self.symbol_table[var_name]
                 return self.builder.load(var_ptr, name=var_name)
+        elif ctx.getChildCount() == 4 and ctx.getChild(1).getText() == '[':
+            var_name = ctx.ID().getText()
+            index_expr = ctx.getChild(2)
+            index = self.evaluateExpression(index_expr)
+            var_ptr = self.symbol_table[var_name]
+            element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
+            return self.builder.load(element_ptr, name=f"{var_name}_elem")
         elif ctx.getChildCount() == 3:
             left = self.evaluateExpression(ctx.getChild(0))
             right = self.evaluateExpression(ctx.getChild(2))
@@ -209,3 +240,5 @@ if __name__ == "__main__":
     if result == 1:
         print("Errors were found during lexical and syntax analysis.")
         sys.exit(result)
+
+
