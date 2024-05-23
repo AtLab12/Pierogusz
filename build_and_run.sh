@@ -22,7 +22,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Compile object file into executable
-clang -c -o runtime.o runtime.c
+clang optimized.o runtime.o -o output -lc
 if [ $? -ne 0 ]; then
     echo "Error during linking with Clang"
     exit 1

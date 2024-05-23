@@ -1,0 +1,6 @@
+float32 x;
+float64 y;
+x = 3.4028235e+38;
+y = 1.7976931348623157e+308;
+print x;
+print y;

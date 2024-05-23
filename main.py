@@ -18,9 +18,11 @@ class MyPieroguszListener(PieroguszListener):
         self.string_counter = 0  # Unique counter for string variables
         self.printf = None
         self.read_int = None
-        self.read_float = None
+        self.read_float32 = None
+        self.read_float64 = None
         self.global_fmt = None
-        self.global_fmt_float = None
+        self.global_fmt_float32 = None
+        self.global_fmt_float64 = None
         self.global_fmt_str = None
         self.global_fmt_error = None
 
@@ -40,8 +42,11 @@ class MyPieroguszListener(PieroguszListener):
         read_int_ty = ir.FunctionType(ir.VoidType(), [ir.IntType(32).as_pointer()])
         self.read_int = ir.Function(self.module, read_int_ty, name="read_int")
 
-        read_float_ty = ir.FunctionType(ir.VoidType(), [ir.FloatType().as_pointer()])
-        self.read_float = ir.Function(self.module, read_float_ty, name="read_float")
+        read_float32_ty = ir.FunctionType(ir.VoidType(), [ir.FloatType().as_pointer()])
+        self.read_float32 = ir.Function(self.module, read_float32_ty, name="read_float32")
+
+        read_float64_ty = ir.FunctionType(ir.VoidType(), [ir.DoubleType().as_pointer()])
+        self.read_float64 = ir.Function(self.module, read_float64_ty, name="read_float64")
 
         # Create the global format string for integers
         fmt = "%d\n\0"
@@ -53,18 +58,31 @@ class MyPieroguszListener(PieroguszListener):
         self.global_fmt.global_constant = True
         self.global_fmt.linkage = "internal"
 
-        # Create the global format string for floats
-        fmt_float = "%f\n\0"
-        c_fmt_float = ir.Constant(
-            ir.ArrayType(ir.IntType(8), len(fmt_float)),
-            bytearray(fmt_float.encode("utf8")),
+        # Create the global format string for float32
+        fmt_float32 = "%f\n\0"
+        c_fmt_float32 = ir.Constant(
+            ir.ArrayType(ir.IntType(8), len(fmt_float32)),
+            bytearray(fmt_float32.encode("utf8")),
         )
-        self.global_fmt_float = ir.GlobalVariable(
-            self.module, c_fmt_float.type, name="fstr_float"
+        self.global_fmt_float32 = ir.GlobalVariable(
+            self.module, c_fmt_float32.type, name="fstr_float32"
         )
-        self.global_fmt_float.initializer = c_fmt_float
-        self.global_fmt_float.global_constant = True
-        self.global_fmt_float.linkage = "internal"
+        self.global_fmt_float32.initializer = c_fmt_float32
+        self.global_fmt_float32.global_constant = True
+        self.global_fmt_float32.linkage = "internal"
+
+        # Create the global format string for float64
+        fmt_float64 = "%lf\n\0"
+        c_fmt_float64 = ir.Constant(
+            ir.ArrayType(ir.IntType(8), len(fmt_float64)),
+            bytearray(fmt_float64.encode("utf8")),
+        )
+        self.global_fmt_float64 = ir.GlobalVariable(
+            self.module, c_fmt_float64.type, name="fstr_float64"
+        )
+        self.global_fmt_float64.initializer = c_fmt_float64
+        self.global_fmt_float64.global_constant = True
+        self.global_fmt_float64.linkage = "internal"
 
         # Create the global format string for strings
         fmt_str = "%s\n\0"
@@ -103,8 +121,10 @@ class MyPieroguszListener(PieroguszListener):
         var_name = ctx.getChild(1).getText()
         if var_type == "int":
             var = self.builder.alloca(ir.IntType(32), name=var_name)
-        elif var_type == "float":
+        elif var_type == "float32":
             var = self.builder.alloca(ir.FloatType(), name=var_name)
+        elif var_type == "float64":
+            var = self.builder.alloca(ir.DoubleType(), name=var_name)
         elif var_type == "string":
             var = self.builder.alloca(ir.IntType(8).as_pointer(), name=var_name)
         self.symbol_table[var_name] = var
@@ -116,8 +136,10 @@ class MyPieroguszListener(PieroguszListener):
         size = int(ctx.getChild(3).getText())
         if var_type == "int":
             var = self.builder.alloca(ir.ArrayType(ir.IntType(32), size), name=var_name)
-        elif var_type == "float":
+        elif var_type == "float32":
             var = self.builder.alloca(ir.ArrayType(ir.FloatType(), size), name=var_name)
+        elif var_type == "float64":
+            var = self.builder.alloca(ir.ArrayType(ir.DoubleType(), size), name=var_name)
         elif var_type == "string":
             var = self.builder.alloca(ir.ArrayType(ir.IntType(8).as_pointer(), size), name=var_name)
         self.symbol_table[var_name] = var
@@ -156,15 +178,17 @@ class MyPieroguszListener(PieroguszListener):
 
         if value.type == ir.IntType(32):
             fmt_ptr = self.builder.bitcast(self.global_fmt, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr, value])
         elif value.type == ir.FloatType():
-            fmt_ptr = self.builder.bitcast(
-                self.global_fmt_float, ir.IntType(8).as_pointer()
-            )
+            fmt_ptr = self.builder.bitcast(self.global_fmt_float32, ir.IntType(8).as_pointer())
+            float_value = self.builder.fpext(value, ir.DoubleType())  # Extend float to double for printf
+            self.builder.call(self.printf, [fmt_ptr, float_value])
+        elif value.type == ir.DoubleType():
+            fmt_ptr = self.builder.bitcast(self.global_fmt_float64, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr, value])
         elif value.type == ir.IntType(8).as_pointer():
-            fmt_ptr = self.builder.bitcast(
-                self.global_fmt_str, ir.IntType(8).as_pointer()
-            )
-        self.builder.call(self.printf, [fmt_ptr, value])
+            fmt_ptr = self.builder.bitcast(self.global_fmt_str, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr, value])
 
     def enterReadStmt(self, ctx: PieroguszParser.ReadStmtContext):
         var_name = ctx.getChild(1).getText()
@@ -174,7 +198,9 @@ class MyPieroguszListener(PieroguszListener):
         if var_type == ir.IntType(32):
             self.builder.call(self.read_int, [var_ptr])
         elif var_type == ir.FloatType():
-            self.builder.call(self.read_float, [var_ptr])
+            self.builder.call(self.read_float32, [var_ptr])
+        elif var_type == ir.DoubleType():
+            self.builder.call(self.read_float64, [var_ptr])
 
         print(f"Reading value into variable {var_name}")
 
@@ -182,8 +208,15 @@ class MyPieroguszListener(PieroguszListener):
         if ctx.getChildCount() == 1:
             if ctx.INT():
                 return ir.Constant(ir.IntType(32), int(ctx.INT().getText()))
-            elif ctx.FLOAT():
-                return ir.Constant(ir.FloatType(), float(ctx.FLOAT().getText()))
+            elif ctx.FLOAT() or ctx.SCIENTIFIC_FLOAT():
+                # Determine the type based on the context or the expected type
+                float_val = ctx.FLOAT().getText() if ctx.FLOAT() else ctx.SCIENTIFIC_FLOAT().getText()
+                parent_ctx = ctx.parentCtx
+                var_type = self.getExpectedType(parent_ctx, ctx)
+                if var_type == ir.FloatType():
+                    return ir.Constant(ir.FloatType(), float(float_val))
+                elif var_type == ir.DoubleType():
+                    return ir.Constant(ir.DoubleType(), float(float_val))
             elif ctx.STRING():
                 str_val = ctx.STRING().getText()
                 str_val = str_val[1:-1]  # Remove the surrounding quotes
@@ -241,8 +274,41 @@ class MyPieroguszListener(PieroguszListener):
                     return self.builder.fmul(left, right, name="multmp")
                 elif op == "/":
                     return self.builder.fdiv(left, right, name="divtmp")
+            elif left.type == ir.DoubleType() and right.type == ir.DoubleType():
+                if op == "+":
+                    return self.builder.fadd(left, right, name="addtmp")
+                elif op == "-":
+                    return self.builder.fsub(left, right, name="subtmp")
+                elif op == "*":
+                    return self.builder.fmul(left, right, name="multmp")
+                elif op == "/":
+                    return self.builder.fdiv(left, right, name="divtmp")
 
         raise RuntimeError("Unsupported expression")
+
+    def getExpectedType(self, parent_ctx, expr_ctx):
+        # This method attempts to determine the expected type of an expression
+        # based on its context (e.g., variable declarations, assignments)
+        if isinstance(parent_ctx, PieroguszParser.VarDeclContext):
+            var_type = parent_ctx.getChild(0).getText()
+            if var_type == "float32":
+                return ir.FloatType()
+            elif var_type == "float64":
+                return ir.DoubleType()
+        elif isinstance(parent_ctx, PieroguszParser.AssignStmtContext):
+            var_name = parent_ctx.getChild(0).getText()
+            var_ptr = self.symbol_table.get(var_name)
+            if var_ptr is not None:
+                pointee_type = var_ptr.type.pointee
+                return pointee_type
+        elif isinstance(parent_ctx, PieroguszParser.ArrayAssignStmtContext):
+            var_name = parent_ctx.getChild(0).getText()
+            var_ptr = self.symbol_table.get(var_name)
+            if var_ptr is not None:
+                array_type = var_ptr.type.pointee
+                return array_type.element
+
+        return ir.FloatType()  # Default to float32 if unsure
 
 
 def main(argv):

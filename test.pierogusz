@@ -2,11 +2,11 @@ int x;
 x = 5;
 print x;
 
-float y;
+float32 y;
 y = 3.141592;
 print y;
 
-float p;
+float64 p;
 p = 1.123123;
 print p;
 
@@ -35,7 +35,7 @@ xDiv = x1 / 4;
 print xDiv;
 
 print "Testing IO reading";
-float readTest;
+float64 readTest;
 read readTest;
 print readTest;
 
