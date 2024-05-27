@@ -18,14 +18,15 @@ varDecl
     | 'float32' ID ';' 
     | 'float64' ID ';' 
     | 'string' ID ';'
+    | 'bool' ID ';'
     ;
 
 arrayDecl
-    : ('int' | 'float32' | 'float64' | 'string') ID '[' INT ']' ';'
+    : ('int' | 'float32' | 'float64' | 'string' | 'bool') ID '[' INT ']' ';'
     ;
 
 matrixDecl
-    : ('int' | 'float32' | 'float64' | 'string') ID '[' INT ']' '[' INT ']' ';'
+    : ('int' | 'float32' | 'float64' | 'string' | 'bool') ID '[' INT ']' '[' INT ']' ';'
     ;
 
 printStmt
@@ -49,7 +50,8 @@ matrixAssignStmt
     ;
 
 expr
-    : expr ('+' | '-' | '*' | '/') expr
+    : expr ('+' | '-' | '*' | '/' | 'AND' | 'OR' | 'XOR') expr
+    | 'NEG' expr
     | ID
     | ID '[' expr ']'
     | ID '[' expr ']' '[' expr ']'
@@ -57,6 +59,7 @@ expr
     | FLOAT
     | SCIENTIFIC_FLOAT
     | STRING
+    | BOOL
     ;
 
 ID: [a-zA-Z_][a-zA-Z_0-9]*;
@@ -64,5 +67,6 @@ INT: [0-9]+;
 FLOAT: [0-9]+ '.' [0-9]*;
 SCIENTIFIC_FLOAT: [0-9]+ ('.' [0-9]*)? [eE] [+-]? [0-9]+;
 STRING: '"' (~["\r\n])* '"';
+BOOL: 'true' | 'false';
 WS: [ \t\r\n]+ -> skip;
 COMMENT: '#' ~[\r\n]* -> skip;

@@ -26,6 +26,7 @@ class MyPieroguszListener(PieroguszListener):
         self.global_fmt_float64 = None
         self.global_fmt_str = None
         self.global_fmt_error = None
+        self.error_string_used = False  # Track if the error string is used
 
     def enterProgram(self, ctx: PieroguszParser.ProgramContext):
         print("Entering program")
@@ -128,6 +129,8 @@ class MyPieroguszListener(PieroguszListener):
             var = self.builder.alloca(ir.DoubleType(), name=var_name)
         elif var_type == "string":
             var = self.builder.alloca(ir.IntType(8).as_pointer(), name=var_name)
+        elif var_type == "bool":
+            var = self.builder.alloca(ir.IntType(1), name=var_name)
         self.symbol_table[var_name] = var
         print(f"Declared variable {var_name} of type {var_type}")
 
@@ -143,6 +146,8 @@ class MyPieroguszListener(PieroguszListener):
             var = self.builder.alloca(ir.ArrayType(ir.DoubleType(), size), name=var_name)
         elif var_type == "string":
             var = self.builder.alloca(ir.ArrayType(ir.IntType(8).as_pointer(), size), name=var_name)
+        elif var_type == "bool":
+            var = self.builder.alloca(ir.ArrayType(ir.IntType(1), size), name=var_name)
         self.symbol_table[var_name] = var
         self.array_sizes[var_name] = size
         print(f"Declared array {var_name} of type {var_type} with size {size}")
@@ -160,6 +165,8 @@ class MyPieroguszListener(PieroguszListener):
             var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.DoubleType(), size2), size1), name=var_name)
         elif var_type == "string":
             var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.IntType(8).as_pointer(), size2), size1), name=var_name)
+        elif var_type == "bool":
+            var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.IntType(1), size2), size1), name=var_name)
         self.symbol_table[var_name] = var
         self.matrix_sizes[var_name] = (size1, size2)
         print(f"Declared matrix {var_name} of type {var_type} with sizes {size1}x{size2}")
@@ -184,6 +191,7 @@ class MyPieroguszListener(PieroguszListener):
             fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
             self.builder.call(self.printf, [fmt_ptr])
             self.builder.ret(ir.Constant(ir.IntType(32), 1))
+            self.error_string_used = True
 
         var_ptr = self.symbol_table[var_name]
         element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
@@ -204,12 +212,14 @@ class MyPieroguszListener(PieroguszListener):
             fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
             self.builder.call(self.printf, [fmt_ptr])
             self.builder.ret(ir.Constant(ir.IntType(32), 1))
+            self.error_string_used = True
 
         # Bounds checking for the second index
         with self.builder.if_then(self.builder.icmp_unsigned('>=', index2, ir.Constant(ir.IntType(32), self.matrix_sizes[var_name][1]))):
             fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
             self.builder.call(self.printf, [fmt_ptr])
             self.builder.ret(ir.Constant(ir.IntType(32), 1))
+            self.error_string_used = True
 
         var_ptr = self.symbol_table[var_name]
         element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index1, index2], inbounds=True)
@@ -233,6 +243,10 @@ class MyPieroguszListener(PieroguszListener):
         elif value.type == ir.IntType(8).as_pointer():
             fmt_ptr = self.builder.bitcast(self.global_fmt_str, ir.IntType(8).as_pointer())
             self.builder.call(self.printf, [fmt_ptr, value])
+        elif value.type == ir.IntType(1):
+            bool_value = self.builder.zext(value, ir.IntType(32))  # Zero extend to int for printf
+            fmt_ptr = self.builder.bitcast(self.global_fmt, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr, bool_value])
 
     def enterReadStmt(self, ctx: PieroguszParser.ReadStmtContext):
         var_name = ctx.getChild(1).getText()
@@ -250,10 +264,12 @@ class MyPieroguszListener(PieroguszListener):
 
     def evaluateExpression(self, ctx):
         if ctx.getChildCount() == 1:
+            print(f"{ctx.getText()} ctx text")
             if ctx.INT():
+                print("Entering INT block")
                 return ir.Constant(ir.IntType(32), int(ctx.INT().getText()))
             elif ctx.FLOAT() or ctx.SCIENTIFIC_FLOAT():
-                # Determine the type based on the context or the expected type
+                print("Entering FLOAT block")
                 float_val = ctx.FLOAT().getText() if ctx.FLOAT() else ctx.SCIENTIFIC_FLOAT().getText()
                 parent_ctx = ctx.parentCtx
                 var_type = self.getExpectedType(parent_ctx)
@@ -262,6 +278,7 @@ class MyPieroguszListener(PieroguszListener):
                 elif var_type == ir.DoubleType():
                     return ir.Constant(ir.DoubleType(), float(float_val))
             elif ctx.STRING():
+                print("Entering STRING block")
                 str_val = ctx.STRING().getText()
                 str_val = str_val[1:-1]  # Remove the surrounding quotes
                 str_const = ir.Constant(
@@ -277,11 +294,21 @@ class MyPieroguszListener(PieroguszListener):
                 global_str.global_constant = True
                 global_str.linkage = "internal"
                 return self.builder.bitcast(global_str, ir.IntType(8).as_pointer())
+            elif ctx.getText() == "true" or ctx.getText() == "false":
+                print("Entering BOOL block")
+                bool_val = ctx.getText() == "true"
+                return ir.Constant(ir.IntType(1), bool_val)
             elif ctx.ID():
                 var_name = ctx.ID().getText()
-                var_ptr = self.symbol_table[var_name]
-                return self.builder.load(var_ptr, name=var_name)
+                print(f"Entering ID block: {var_name} -- var_name")
+                print(f"{self.symbol_table} -- symbol table")
+                if var_name in self.symbol_table:
+                    var_ptr = self.symbol_table[var_name]
+                    return self.builder.load(var_ptr, name=var_name)
+                else:
+                    raise RuntimeError(f"Undefined variable: {var_name}")
         elif ctx.getChildCount() == 4 and ctx.getChild(1).getText() == '[':
+            print("Entering array indexing block")
             var_name = ctx.ID().getText()
             index_expr = ctx.getChild(2)
             index = self.evaluateExpression(index_expr)
@@ -291,11 +318,13 @@ class MyPieroguszListener(PieroguszListener):
                 fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
                 self.builder.call(self.printf, [fmt_ptr])
                 self.builder.ret(ir.Constant(ir.IntType(32), 1))
+                self.error_string_used = True
 
             var_ptr = self.symbol_table[var_name]
             element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
             return self.builder.load(element_ptr, name=f"{var_name}_elem")
         elif ctx.getChildCount() == 7 and ctx.getChild(4).getText() == '[':
+            print("Entering matrix indexing block")
             var_name = ctx.ID().getText()
             index1_expr = ctx.getChild(2)
             index2_expr = ctx.getChild(5)
@@ -307,17 +336,20 @@ class MyPieroguszListener(PieroguszListener):
                 fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
                 self.builder.call(self.printf, [fmt_ptr])
                 self.builder.ret(ir.Constant(ir.IntType(32), 1))
+                self.error_string_used = True
 
             # Bounds checking for the second index
             with self.builder.if_then(self.builder.icmp_unsigned('>=', index2, ir.Constant(ir.IntType(32), self.matrix_sizes[var_name][1]))):
                 fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
                 self.builder.call(self.printf, [fmt_ptr])
                 self.builder.ret(ir.Constant(ir.IntType(32), 1))
+                self.error_string_used = True
 
             var_ptr = self.symbol_table[var_name]
             element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index1, index2], inbounds=True)
             return self.builder.load(element_ptr, name=f"{var_name}_elem")
         elif ctx.getChildCount() == 3:
+            print("Entering binary operation block")
             left = self.evaluateExpression(ctx.getChild(0))
             right = self.evaluateExpression(ctx.getChild(2))
             op = ctx.getChild(1).getText()
@@ -349,6 +381,18 @@ class MyPieroguszListener(PieroguszListener):
                     return self.builder.fmul(left, right, name="multmp")
                 elif op == "/":
                     return self.builder.fdiv(left, right, name="divtmp")
+            elif left.type == ir.IntType(1) and right.type == ir.IntType(1):
+                if op == "AND":
+                    return self.builder.and_(left, right, name="andtmp")
+                elif op == "OR":
+                    return self.builder.or_(left, right, name="ortmp")
+                elif op == "XOR":
+                    return self.builder.xor(left, right, name="xortmp")
+        elif ctx.getChildCount() == 2 and ctx.getChild(0).getText() == "NEG":
+            print("Entering NEG operation block")
+            operand = self.evaluateExpression(ctx.getChild(1))
+            if operand.type == ir.IntType(1):
+                return self.builder.not_(operand, name="negtmp")
 
         raise RuntimeError("Unsupported expression")
 
@@ -361,6 +405,8 @@ class MyPieroguszListener(PieroguszListener):
                 return ir.FloatType()
             elif var_type == "float64":
                 return ir.DoubleType()
+            elif var_type == "bool":
+                return ir.IntType(1)
         elif isinstance(parent_ctx, PieroguszParser.AssignStmtContext):
             var_name = parent_ctx.getChild(0).getText()
             var_ptr = self.symbol_table.get(var_name)
