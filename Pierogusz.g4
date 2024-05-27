@@ -2,24 +2,62 @@ grammar Pierogusz;
 
 program: statement+;
 
-statement: varDecl | arrayDecl | printStmt | readStmt | assignStmt | arrayAssignStmt;
+statement
+    : varDecl 
+    | arrayDecl 
+    | matrixDecl
+    | printStmt 
+    | readStmt 
+    | assignStmt 
+    | arrayAssignStmt 
+    | matrixAssignStmt
+    ;
 
-varDecl: 'int' ID ';' | 'float32' ID ';' | 'float64' ID ';' | 'string' ID ';';
-arrayDecl: ('int' | 'float32' | 'float64' | 'string') ID '[' INT ']' ';';
+varDecl
+    : 'int' ID ';' 
+    | 'float32' ID ';' 
+    | 'float64' ID ';' 
+    | 'string' ID ';'
+    ;
 
-printStmt: 'print' expr ';';
-readStmt: 'read' ID ';';
-assignStmt: ID '=' expr ';';
-arrayAssignStmt: ID '[' expr ']' '=' expr ';';
+arrayDecl
+    : ('int' | 'float32' | 'float64' | 'string') ID '[' INT ']' ';'
+    ;
 
-expr:
-    expr ('+' | '-' | '*' | '/') expr
+matrixDecl
+    : ('int' | 'float32' | 'float64' | 'string') ID '[' INT ']' '[' INT ']' ';'
+    ;
+
+printStmt
+    : 'print' expr ';'
+    ;
+
+readStmt
+    : 'read' ID ';'
+    ;
+
+assignStmt
+    : ID '=' expr ';'
+    ;
+
+arrayAssignStmt
+    : ID '[' expr ']' '=' expr ';'
+    ;
+
+matrixAssignStmt
+    : ID '[' expr ']' '[' expr ']' '=' expr ';'
+    ;
+
+expr
+    : expr ('+' | '-' | '*' | '/') expr
     | ID
     | ID '[' expr ']'
+    | ID '[' expr ']' '[' expr ']'
     | INT
     | FLOAT
     | SCIENTIFIC_FLOAT
-    | STRING;
+    | STRING
+    ;
 
 ID: [a-zA-Z_][a-zA-Z_0-9]*;
 INT: [0-9]+;

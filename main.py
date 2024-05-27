@@ -15,6 +15,7 @@ class MyPieroguszListener(PieroguszListener):
         self.func = None
         self.symbol_table = {}
         self.array_sizes = {}
+        self.matrix_sizes = {}
         self.string_counter = 0  # Unique counter for string variables
         self.printf = None
         self.read_int = None
@@ -146,6 +147,23 @@ class MyPieroguszListener(PieroguszListener):
         self.array_sizes[var_name] = size
         print(f"Declared array {var_name} of type {var_type} with size {size}")
 
+    def enterMatrixDecl(self, ctx: PieroguszParser.MatrixDeclContext):
+        var_type = ctx.getChild(0).getText()
+        var_name = ctx.getChild(1).getText()
+        size1 = int(ctx.getChild(3).getText())
+        size2 = int(ctx.getChild(6).getText())
+        if var_type == "int":
+            var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.IntType(32), size2), size1), name=var_name)
+        elif var_type == "float32":
+            var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.FloatType(), size2), size1), name=var_name)
+        elif var_type == "float64":
+            var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.DoubleType(), size2), size1), name=var_name)
+        elif var_type == "string":
+            var = self.builder.alloca(ir.ArrayType(ir.ArrayType(ir.IntType(8).as_pointer(), size2), size1), name=var_name)
+        self.symbol_table[var_name] = var
+        self.matrix_sizes[var_name] = (size1, size2)
+        print(f"Declared matrix {var_name} of type {var_type} with sizes {size1}x{size2}")
+
     def enterAssignStmt(self, ctx: PieroguszParser.AssignStmtContext):
         var_name = ctx.getChild(0).getText()
         value_expr = ctx.getChild(2)
@@ -171,6 +189,32 @@ class MyPieroguszListener(PieroguszListener):
         element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
         self.builder.store(value, element_ptr)
         print(f"Assigned value to array {var_name} at index {index}")
+
+    def enterMatrixAssignStmt(self, ctx: PieroguszParser.MatrixAssignStmtContext):
+        var_name = ctx.getChild(0).getText()
+        index1_expr = ctx.getChild(2)
+        index2_expr = ctx.getChild(5)
+        value_expr = ctx.getChild(8)
+        index1 = self.evaluateExpression(index1_expr)
+        index2 = self.evaluateExpression(index2_expr)
+        value = self.evaluateExpression(value_expr)
+
+        # Bounds checking for the first index
+        with self.builder.if_then(self.builder.icmp_unsigned('>=', index1, ir.Constant(ir.IntType(32), self.matrix_sizes[var_name][0]))):
+            fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr])
+            self.builder.ret(ir.Constant(ir.IntType(32), 1))
+
+        # Bounds checking for the second index
+        with self.builder.if_then(self.builder.icmp_unsigned('>=', index2, ir.Constant(ir.IntType(32), self.matrix_sizes[var_name][1]))):
+            fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
+            self.builder.call(self.printf, [fmt_ptr])
+            self.builder.ret(ir.Constant(ir.IntType(32), 1))
+
+        var_ptr = self.symbol_table[var_name]
+        element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index1, index2], inbounds=True)
+        self.builder.store(value, element_ptr)
+        print(f"Assigned value to matrix {var_name} at indices [{index1}][{index2}]")
 
     def enterPrintStmt(self, ctx: PieroguszParser.PrintStmtContext):
         expr = ctx.getChild(1)
@@ -212,7 +256,7 @@ class MyPieroguszListener(PieroguszListener):
                 # Determine the type based on the context or the expected type
                 float_val = ctx.FLOAT().getText() if ctx.FLOAT() else ctx.SCIENTIFIC_FLOAT().getText()
                 parent_ctx = ctx.parentCtx
-                var_type = self.getExpectedType(parent_ctx, ctx)
+                var_type = self.getExpectedType(parent_ctx)
                 if var_type == ir.FloatType():
                     return ir.Constant(ir.FloatType(), float(float_val))
                 elif var_type == ir.DoubleType():
@@ -251,6 +295,28 @@ class MyPieroguszListener(PieroguszListener):
             var_ptr = self.symbol_table[var_name]
             element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index], inbounds=True)
             return self.builder.load(element_ptr, name=f"{var_name}_elem")
+        elif ctx.getChildCount() == 7 and ctx.getChild(4).getText() == '[':
+            var_name = ctx.ID().getText()
+            index1_expr = ctx.getChild(2)
+            index2_expr = ctx.getChild(5)
+            index1 = self.evaluateExpression(index1_expr)
+            index2 = self.evaluateExpression(index2_expr)
+
+            # Bounds checking for the first index
+            with self.builder.if_then(self.builder.icmp_unsigned('>=', index1, ir.Constant(ir.IntType(32), self.matrix_sizes[var_name][0]))):
+                fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
+                self.builder.call(self.printf, [fmt_ptr])
+                self.builder.ret(ir.Constant(ir.IntType(32), 1))
+
+            # Bounds checking for the second index
+            with self.builder.if_then(self.builder.icmp_unsigned('>=', index2, ir.Constant(ir.IntType(32), self.matrix_sizes[var_name][1]))):
+                fmt_ptr = self.builder.bitcast(self.global_fmt_error, ir.IntType(8).as_pointer())
+                self.builder.call(self.printf, [fmt_ptr])
+                self.builder.ret(ir.Constant(ir.IntType(32), 1))
+
+            var_ptr = self.symbol_table[var_name]
+            element_ptr = self.builder.gep(var_ptr, [ir.Constant(ir.IntType(32), 0), index1, index2], inbounds=True)
+            return self.builder.load(element_ptr, name=f"{var_name}_elem")
         elif ctx.getChildCount() == 3:
             left = self.evaluateExpression(ctx.getChild(0))
             right = self.evaluateExpression(ctx.getChild(2))
@@ -286,7 +352,7 @@ class MyPieroguszListener(PieroguszListener):
 
         raise RuntimeError("Unsupported expression")
 
-    def getExpectedType(self, parent_ctx, expr_ctx):
+    def getExpectedType(self, parent_ctx):
         # This method attempts to determine the expected type of an expression
         # based on its context (e.g., variable declarations, assignments)
         if isinstance(parent_ctx, PieroguszParser.VarDeclContext):
@@ -307,6 +373,12 @@ class MyPieroguszListener(PieroguszListener):
             if var_ptr is not None:
                 array_type = var_ptr.type.pointee
                 return array_type.element
+        elif isinstance(parent_ctx, PieroguszParser.MatrixAssignStmtContext):
+            var_name = parent_ctx.getChild(0).getText()
+            var_ptr = self.symbol_table.get(var_name)
+            if var_ptr is not None:
+                matrix_type = var_ptr.type.pointee
+                return matrix_type.element.element
 
         return ir.FloatType()  # Default to float32 if unsure
 

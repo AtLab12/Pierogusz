@@ -7,7 +7,7 @@ intArr[1] = 20;
 print intArr[0];
 print intArr[1];
 
-float floatArr[2];
+float32 floatArr[2];
 floatArr[0] = 3.14;
 floatArr[1] = 2.71;
 
