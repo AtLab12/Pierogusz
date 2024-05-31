@@ -35,6 +35,24 @@ class PieroguszListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by PieroguszParser#arrayDecl.
+    def enterArrayDecl(self, ctx:PieroguszParser.ArrayDeclContext):
+        pass
+
+    # Exit a parse tree produced by PieroguszParser#arrayDecl.
+    def exitArrayDecl(self, ctx:PieroguszParser.ArrayDeclContext):
+        pass
+
+
+    # Enter a parse tree produced by PieroguszParser#matrixDecl.
+    def enterMatrixDecl(self, ctx:PieroguszParser.MatrixDeclContext):
+        pass
+
+    # Exit a parse tree produced by PieroguszParser#matrixDecl.
+    def exitMatrixDecl(self, ctx:PieroguszParser.MatrixDeclContext):
+        pass
+
+
     # Enter a parse tree produced by PieroguszParser#printStmt.
     def enterPrintStmt(self, ctx:PieroguszParser.PrintStmtContext):
         pass
@@ -59,6 +77,24 @@ class PieroguszListener(ParseTreeListener):
 
     # Exit a parse tree produced by PieroguszParser#assignStmt.
     def exitAssignStmt(self, ctx:PieroguszParser.AssignStmtContext):
+        pass
+
+
+    # Enter a parse tree produced by PieroguszParser#arrayAssignStmt.
+    def enterArrayAssignStmt(self, ctx:PieroguszParser.ArrayAssignStmtContext):
+        pass
+
+    # Exit a parse tree produced by PieroguszParser#arrayAssignStmt.
+    def exitArrayAssignStmt(self, ctx:PieroguszParser.ArrayAssignStmtContext):
+        pass
+
+
+    # Enter a parse tree produced by PieroguszParser#matrixAssignStmt.
+    def enterMatrixAssignStmt(self, ctx:PieroguszParser.MatrixAssignStmtContext):
+        pass
+
+    # Exit a parse tree produced by PieroguszParser#matrixAssignStmt.
+    def exitMatrixAssignStmt(self, ctx:PieroguszParser.MatrixAssignStmtContext):
         pass
 
 

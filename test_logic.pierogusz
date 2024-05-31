@@ -1,0 +1,42 @@
+print "Testing logical operations";
+
+bool a;
+bool b;
+bool c;
+bool d;
+bool e;
+bool f;
+bool g;
+bool h;
+
+a = true;
+b = false;
+
+# Test AND operation
+c = a AND b;
+print c; # Expected output: false (0)
+
+# Test OR operation
+d = a OR b;
+print d; # Expected output: true (1)
+
+# Test XOR operation
+e = a XOR b;
+print e; # Expected output: true (1)
+
+# Test NEG operation
+f = NEG a;
+print f; # Expected output: false (0)
+
+g = NEG b;
+print g; # Expected output: true (1)
+
+# Test combination of logical operations without parentheses
+# Simplifying by storing intermediate results in variables
+bool temp1;
+bool temp2;
+
+temp1 = a AND b;
+temp2 = a XOR b;
+h = temp1 OR temp2;
+print h; # Expected output: true (1)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Execute Python script to generate LLVM IR
-python3 main.py test.pierogusz
+python3 main.py test_matrix.pierogusz
 if [ $? -ne 0 ]; then
     echo "Error during Python script execution"
     exit 1

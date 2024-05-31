@@ -1,0 +1,27 @@
+print "Testing arrays";
+
+int intArr[2];
+intArr[0] = 10;
+intArr[1] = 20;
+
+print intArr[0];
+print intArr[1];
+
+float32 floatArr[2];
+floatArr[0] = 3.14;
+floatArr[1] = 2.71;
+
+print floatArr[0];
+print floatArr[1];
+
+string stringArr[2];
+stringArr[0] = "hello";
+stringArr[1] = "world";
+
+print stringArr[0];
+print stringArr[1];
+
+# This should cause an out-of-bounds error
+print intArr[2];
+print floatArr[2];
+print stringArr[2];
