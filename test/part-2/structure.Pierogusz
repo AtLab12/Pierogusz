@@ -1,0 +1,19 @@
+struct structureTypeA {
+int a;
+int b;
+};
+
+struct structureTypeB {
+int a;
+float b;
+bool c;
+};
+
+structureTypeA structA;
+structA = {a=1;b=2;};
+
+structureTypeB structB;
+structB = {a=1;b=2.0;c=true};
+
+print(structA.a);
+print(structB.b);

@@ -1,0 +1,24 @@
+//Etap 1
+
+int nazwa;
+float nazwa;
+string nazwa;
+
+read();
+print(x);
+x = 4 - 2 + 4 * 2 / 4;
+
+//Etap 1+ **********************************
+
+arr = [];
+arr.push, .pop, .get, .length
+
+&& || != == ^^ //and or neg eq xor
+
+obsługa stringów .concat, .length, .toUpper .toLower
+
+float32 float64
+
+
+// Etap 2 *************************************
+

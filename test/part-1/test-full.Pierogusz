@@ -1,0 +1,33 @@
+float a;
+a = 2.5 * 3.1;
+print(a);
+int b;
+read(b);
+print(b);
+int x;
+x = 5 * 8;
+print(x);
+float y;
+y = ( 5.1 + 3.9) * 5.0 + 4.0 + toFloat(3);
+float z;
+z = y - 1.0 / 2.0;
+print(y);
+
+int i1;
+i1 = toInt(3.0);
+print(i1);
+
+bool bb;
+bb = !false;
+bb = 3 == 3.0;
+bb = a || false;
+bb = a && b;
+bb = "string" == true;
+bb = false;
+print(bb);
+
+string str;
+str = "string in double quote";
+
+array arr;
+arr = [bb, a, 12, [1,2], a == 1];

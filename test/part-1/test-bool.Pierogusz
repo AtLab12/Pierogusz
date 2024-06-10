@@ -1,0 +1,13 @@
+bool a;
+bool b;
+a = true;
+b = false;
+
+bool bb;
+bb = !false;
+bb = 3 == 3.0;
+bb = a || false;
+bb = a && b;
+bb = false == true;
+bb = false;
+print(bb);

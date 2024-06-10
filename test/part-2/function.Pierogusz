@@ -1,0 +1,24 @@
+
+
+bool bb;
+bb = true;
+
+int cc;
+cc = 3;
+int dd;
+dd = 4;
+int ee;
+ee = cc + dd;
+
+function getSum (int a, int b){
+    int c;
+    c = a + b;
+    print(a);
+    print(b);
+    print(c);
+};
+
+getSum(1,2);
+getSum(cc,dd);
+
+print(ee);

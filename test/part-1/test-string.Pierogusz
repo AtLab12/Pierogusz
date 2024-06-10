@@ -1,0 +1,14 @@
+string str1;
+str1 = "Ala";
+print(str1);
+
+string str2;
+str2 = " ma kota";
+print(str2);
+
+string str3;
+str3 = str1 + str2;
+
+string str4;
+read(str4);
+print(str4);

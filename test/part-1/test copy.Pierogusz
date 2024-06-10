@@ -1,0 +1,18 @@
+int nazwa1;
+float nazwa2;
+string nazwa3;
+bool bool1;
+bool1 = true;
+nazwa1 = 5+3;
+read(a);
+print(x);
+bool1 = x || 1;
+bool bool2;
+nazwa2 = (float) nazwa1;
+bool2 = ab ^^ cx;
+arr.push();
+"string".length();
+x = 4 - (2 + 4) * 2 / 4.0;
+y = 5.4;
+arr = [];
+arr2 = [1,2,3];

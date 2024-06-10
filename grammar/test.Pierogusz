@@ -1,0 +1,61 @@
+float a;
+int b;
+a = 2.5 * 3.1;
+b = 2;
+
+bool c;
+c = true;
+
+bool d;
+d = true;
+
+bool t;
+t = true;
+bool f;
+f = false;
+
+if(t){
+    print(t);
+    int score;
+    score = 1;
+    print(score);
+};
+
+if(t){
+    print(t);
+    int score;
+    score = 2;
+    print(score);
+}else{
+    print(f);
+    int score;
+    score = 3;
+    print(score);
+};
+
+if(c){
+    print(t);
+    int score;
+    score = 4;
+    print(score);
+    if(c){
+        print(score);
+        score = 5;
+        print(score);
+
+        if(c){
+            int score;
+            score = 6;
+            print(score);
+        };
+    };
+    print(score);
+};
+
+
+if(d){
+    print(t);
+    int score;
+    score = 7;
+    print(score);
+};

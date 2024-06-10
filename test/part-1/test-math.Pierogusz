@@ -1,0 +1,10 @@
+int int1;
+int int2;
+float float1;
+int1 = 4;
+float1 = 2.5123;
+read(int2);
+float float3;
+float3 = float1 * 2 - 3 / 2;
+print(float3);
+

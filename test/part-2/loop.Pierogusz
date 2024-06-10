@@ -1,0 +1,21 @@
+int b;
+b = 20;
+int c;
+c = 100;
+
+loop(5){
+    print(b);
+    b = b - 1;
+    loop(2){
+        print(c);
+        c = c - 1;
+    };
+};
+
+c = 50;
+loop(2){
+    print(c);
+    c = c - 1;
+};
+
+print(c);
